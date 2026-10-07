@@ -1,0 +1,103 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+title Диаграмма классов — Конвертер времени ожидания (MVC, активная модель)
+
+package "com.example.timeconverter" {
+    class App {
+        + start(Stage primaryStage) : void
+        + {static} main(args : String[]) : void
+    }
+}
+
+package "com.example.timeconverter.model" {
+    class TimeModel {
+        - waitingTimeMinutes : int
+        + getWaitingTimeMinutes() : int
+        + setWaitingTimeMinutes(minutes : int) : void
+    }
+}
+
+package "com.example.timeconverter.view" {
+    class MainView {
+        - stage : Stage
+        - model : TimeModel
+        - resultLabel : Label
+        - inputButton : Button
+        - lastInput : int
+        + MainView(stage : Stage, model : TimeModel)
+        + getInputButton() : Button
+        + getLastInput() : int
+        + update(o : Observable, arg : Object) : void
+        - createUI() : void
+        - updateResult(minutes : int) : void
+    }
+
+    class InputView {
+        - stage : Stage
+        - onSubmit : Consumer<String>
+        + InputView(owner : Stage, lastValue : int, onSubmit : Consumer<String>)
+        + show() : void
+        - createUI(lastValue : int) : void
+    }
+}
+
+package "com.example.timeconverter.controller" {
+    class TimeController {
+        - model : TimeModel
+        - mainView : MainView
+        + TimeController(model : TimeModel, mainView : MainView)
+        - initController() : void
+        - openInputDialog() : void
+        - processInput(input : String) : void
+    }
+}
+
+class "javafx.application.Application" as JavaFXApplication <<external>>
+class "java.util.Observable" as Observable <<external>>
+class "java.util.Observer" as Observer <<external>>
+class "javafx.stage.Stage" as Stage <<external>>
+class "javafx.scene.control.Alert" as Alert <<external>>
+
+App --|> JavaFXApplication
+TimeModel --|> Observable
+MainView ..|> Observer
+
+App ..> TimeModel : <<create>>
+App ..> MainView : <<create>>
+App ..> TimeController : <<create>>
+
+TimeController --> TimeModel : управляет
+TimeController --> MainView : читает lastInput,\nподписывается на кнопку
+TimeController ..> InputView : <<create>>
+TimeController ..> Alert : <<create>>
+
+MainView --> TimeModel : наблюдает\n(addObserver)
+MainView --> Stage
+InputView --> Stage
+InputView ..> TimeController : callback\nonSubmit
+
+note right of TimeModel
+  **Model (активная)**
+  Хранит данные и сама
+  уведомляет View через
+  Observable.notifyObservers()
+end note
+
+note right of MainView
+  **View**
+  Реализует Observer —
+  обновляется автоматически
+  при изменении модели
+end note
+
+note right of TimeController
+  **Controller**
+  Обрабатывает ввод и меняет
+  модель. НЕ трогает View
+  напрямую — только через
+  модель (активный MVC)
+end note
+
+@enduml
